@@ -25,6 +25,65 @@ clock = pygame.time.Clock()
 running = True
 
 
+# --------------------- Classes that Build The Maze ---------------------------
+
+# the maze is built with cells
+class Cell():
+    width, height = 16, 16
+
+    def __init__(self, x, y, maze):
+        pygame.sprite.Sprite.__init__(self)
+
+        self.image = pygame.Surface([self.width, self.height])
+        self.image.fill((255, 255, 255))
+        self.rect = self.image.get_rect()
+        self.rect.x = x * self.width
+        self.rect.y = y * self.height
+
+        self.x = x
+        self.y = y
+        self.maze = maze
+        self.nbs = [(x + nx, y + ny) for nx, ny in ((-2, 0), (0, -2), (2, 0), (0, 2))
+                    if 0 <= x + nx < maze.width and 0 <= y + ny < maze.height]
+
+    def draw_cell(self, screen):
+        screen.blit(self.image, self.rect)
+
+
+class Wall():
+    def __init__(self, x, y, maze):
+        super(Wall, self).__init__(x, y, maze)
+        self.image.fill((0, 0, 0))
+        self.type = 0
+
+    #TODO
+    def get(self):
+        return self.type
+
+    #TODO
+    def build_wall(self):
+        return 0
+
+    #TODO
+    def draw(self):
+        return 0
+
+    #TODO
+    def generate_maze(self):
+        return 0
+
+class Maze:
+    #TODO
+    def __init__(self, size):
+        self.width, self.height = size[0] // Cell.width, size[1] // Cell.height
+        self.grid = [[Wall(x, y, self) for y in range(self.height)] for x in range(self.width)]
+
+# -----------------------------------------------------------------------------
+
+def draw_maze():
+    #TODO
+    return 0;
+
 # main game loop
 while running:
 
