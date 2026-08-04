@@ -56,29 +56,37 @@ class Wall():
         self.image.fill((0, 0, 0))
         self.type = 0
 
-    #TODO
-    def get(self):
-        return self.type
-
-    #TODO
-    def build_wall(self):
-        return 0
-
-    #TODO
-    def draw(self):
-        return 0
-
-    #TODO
-    def generate_maze(self):
-        return 0
 
 class Maze:
-    #TODO
     def __init__(self, size):
         self.width, self.height = size[0] // Cell.width, size[1] // Cell.height
         self.grid = [[Wall(x, y, self) for y in range(self.height)] for x in range(self.width)]
 
-# -----------------------------------------------------------------------------
+    def get(self, x, y):
+        return self.grid[x][y]
+
+    def build_wall(self, x, y):
+        self.grid[x][y] = Wall(x, y, self)
+
+    def draw(self, screen):
+        for row in self.grid:
+            for cell in row:
+                cell.draw_cell(screen)
+
+    #TODO
+    def generate_maze(self, screen=None, animation=False):
+        unvisited = [c for c in self.grid for c in r if c.x % 2 and c.y % 2]
+        curr = unvisited.pop()
+        stack = []
+
+        while unvisited:
+            try:
+                return 0
+            except IndexError:
+                if stack:
+                    curr = stack.pop()
+
+# --------------------- Functions that Run the Game ---------------------------
 
 def draw_maze():
     #TODO
