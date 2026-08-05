@@ -8,21 +8,11 @@
 
 import pygame, random
 
-pygame.init()
-
+# setting global variables for the game display
 WINDOW_WIDTH = 1000
 WINDOW_HEIGHT = 600
-
-display_surface = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
-pygame.display.set_caption("*~~~* our aMAZEing game *~~~*")
-
-# Set colors and values
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
-
-# Set game clock and events
-clock = pygame.time.Clock()
-running = True
 
 
 # --------------------- Classes that Build The Maze ---------------------------
@@ -35,7 +25,7 @@ class Cell():
         pygame.sprite.Sprite.__init__(self)
 
         self.image = pygame.Surface([self.width, self.height])
-        self.image.fill((255, 255, 255))
+        self.image.fill((BLACK))
         self.rect = self.image.get_rect()
         self.rect.x = x * self.width
         self.rect.y = y * self.height
@@ -50,10 +40,10 @@ class Cell():
         screen.blit(self.image, self.rect)
 
 
-class Wall():
+class Wall(Cell):
     def __init__(self, x, y, maze):
         super(Wall, self).__init__(x, y, maze)
-        self.image.fill((0, 0, 0))
+        self.image.fill((WHITE))
         self.type = 0
 
 
@@ -73,42 +63,84 @@ class Maze:
             for cell in row:
                 cell.draw_cell(screen)
 
-    #TODO
-    def generate_maze(self, screen=None, animation=False):
-        unvisited = [c for c in self.grid for c in r if c.x % 2 and c.y % 2]
-        curr = unvisited.pop()
-        stack = []
+    #TODO will implement prim's algorithm to generate maze
+    def generate(self, screen=None, animate=False):
+        # Cells that can become passages (odd coordinates)
+        passages = {(x, y) for x in range(1, self.width, 2)
+                            for y in range(1, self.height, 2)}
 
-        while unvisited:
-            try:
-                return 0
-            except IndexError:
-                if stack:
-                    curr = stack.pop()
+        # Pick a random starting cell
+        sx, sy = random.choice(list(passages))
+        passages.remove((sx, sy))
+        self.grid[sx][sy] = Cell(sx, sy, self)
+
+        # Frontier list: (from_x, from_y, to_x, to_y)
+        frontier = []
+
+        def add_frontier(x, y):
+            for nx, ny in self.get(x, y).nbs:
+                if (nx, ny) in passages:
+                    frontier.append((x, y, nx, ny))
+
+        add_frontier(sx, sy)
+
+        while frontier:
+            fx, fy, tx, ty = random.choice(frontier)
+            frontier.remove((fx, fy, tx, ty))
+
+            # Skip if already carved
+            if (tx, ty) not in passages:
+                continue
+
+            passages.remove((tx, ty))
+
+            # Carve the destination cell
+            self.grid[tx][ty] = Cell(tx, ty, self)
+
+            # Remove the wall between the two cells
+            wx = (fx + tx) // 2
+            wy = (fy + ty) // 2
+            self.grid[wx][wy] = Cell(wx, wy, self)
+
+            # Add new frontier walls
+            add_frontier(tx, ty)
+
+            if animate:
+                self.draw(screen)
+                pygame.display.update()
+                pygame.time.wait(10)
 
 # --------------------- Functions that Run the Game ---------------------------
 
-def draw_maze():
-    #TODO
-    return 0;
+def draw_maze(display_surface):
+    maze = Maze((WINDOW_WIDTH, WINDOW_HEIGHT))
+    maze.generate(display_surface, animate=True)
 
-# main game loop
-while running:
+def main():
+    pygame.init()
+    display_surface = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
+    pygame.display.set_caption("*~~~* our aMAZEing game *~~~*")
 
-    # handle game events
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
+    # Set game clock and events
+    clock = pygame.time.Clock()
+    draw_maze(display_surface)
+    running = True
 
-    # just a blank surface for now
-    display_surface.fill(BLACK)
+    # main game loop
+    while running:
 
-    # update display
-    pygame.display.flip()
+        # handle game events
+        for event in pygame.event.get():
+            # let player quit the game
+            if event.type == pygame.QUIT:
+                running = False
 
-    # framerate to 60 FPS
-    clock.tick(60)
+        # update display
+        pygame.display.flip()
+
+        # framerate to 60 FPS
+        clock.tick(60)
 
 
-# End the game
-pygame.quit()
+if __name__ == "__main__":
+    main()
