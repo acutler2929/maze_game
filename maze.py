@@ -13,6 +13,10 @@ WINDOW_WIDTH = 1000
 WINDOW_HEIGHT = 600
 BLACK = (0, 0, 0)
 WHITE = (255, 255, 255)
+GREEN = (0, 255, 0)
+RED = (255, 0, 0)
+BLUE = (0, 0, 255)
+YELLOW = (255, 255, 0)
 
 
 # --------------------- Classes that Build The Maze ---------------------------
@@ -43,7 +47,7 @@ class Cell():
 class Wall(Cell):
     def __init__(self, x, y, maze):
         super(Wall, self).__init__(x, y, maze)
-        self.image.fill((WHITE))
+        self.image.fill(WHITE)
         self.type = 0
 
 
@@ -63,7 +67,6 @@ class Maze:
             for cell in row:
                 cell.draw_cell(screen)
 
-    #TODO will implement prim's algorithm to generate maze
     def generate(self, screen=None, animate=False):
         # Cells that can become passages (odd coordinates)
         passages = {(x, y) for x in range(1, self.width, 2)
@@ -110,11 +113,52 @@ class Maze:
                 pygame.display.update()
                 pygame.time.wait(10)
 
-# --------------------- Functions that Run the Game ---------------------------
 
-def draw_maze(display_surface):
-    maze = Maze((WINDOW_WIDTH, WINDOW_HEIGHT))
-    maze.generate(display_surface, animate=True)
+# --------------------- Classes that define game objects ----------------------
+
+
+class Player(pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        super(Player, self).__init__()
+        # self.image = pygame.Surface([Cell.width, Cell.height])
+        # self.image.fill(BLUE)
+        self.image = pygame.image.load("assets/mouse-512.png").convert_alpha()
+        self.image = pygame.transform.scale(self.image, (Cell.width, Cell.height))
+        self.rect = self.image.get_rect()
+        self.rect.x = x * Cell.width
+        self.rect.y = y * Cell.height
+
+    def draw(self, screen):
+        screen.blit(self.image, self.rect)
+
+    # should only move if the new position is a Cell (not a Wall) and within the maze bounds
+    def move(self, dx, dy, maze):
+        new_x = self.rect.x // Cell.width + dx
+        new_y = self.rect.y // Cell.height + dy
+
+        if 0 <= new_x < maze.width and 0 <= new_y < maze.height:
+            if not isinstance(maze.get(new_x, new_y), Wall):
+                self.rect.x += dx * Cell.width
+                self.rect.y += dy * Cell.height
+
+
+class Exit(pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        super(Exit, self).__init__()
+        # self.image = pygame.Surface([Cell.width, Cell.height])
+        # self.image.fill(GREEN)
+        self.image = pygame.image.load("assets/exit-256.png").convert_alpha()
+        self.image = pygame.transform.scale(self.image, (Cell.width, Cell.height))
+        self.rect = self.image.get_rect()
+        self.rect.x = x * Cell.width
+        self.rect.y = y * Cell.height
+
+    def draw(self, screen):
+        screen.blit(self.image, self.rect)
+
+
+# --------------------- Functions that Run the Game ---------------------------    
+
 
 def main():
     pygame.init()
@@ -123,7 +167,28 @@ def main():
 
     # Set game clock and events
     clock = pygame.time.Clock()
-    draw_maze(display_surface)
+    maze = Maze((WINDOW_WIDTH, WINDOW_HEIGHT))
+    maze.generate(display_surface, animate=False)
+
+    open_cells = [cell for row in maze.grid for cell in row if not isinstance(cell, Wall)]
+
+    # Spawn player
+    player_cell = random.choice(open_cells)
+    player = Player(player_cell.x, player_cell.y)
+
+    # Remove player's cell from possible exit locations
+    exit_cells = [
+        cell for cell in open_cells
+        if cell != player_cell
+    ]
+
+    # Spawn exit
+    exit_cell = random.choice(exit_cells)
+    exit = Exit(exit_cell.x, exit_cell.y)
+
+    move_delay = 300  # milliseconds
+    last_move = 0
+
     running = True
 
     # main game loop
@@ -131,15 +196,36 @@ def main():
 
         # handle game events
         for event in pygame.event.get():
+
+            # update player position based on key presses
+            keys = pygame.key.get_pressed()
+            current_time = pygame.time.get_ticks()
+
+            if current_time - last_move >= move_delay:
+                if keys[pygame.K_UP] or keys[pygame.K_w]:
+                    player.move(0, -1, maze)
+
+                elif keys[pygame.K_DOWN] or keys[pygame.K_s]:
+                    player.move(0, 1, maze)
+
+                elif keys[pygame.K_LEFT] or keys[pygame.K_a]:
+                    player.move(-1, 0, maze)
+
+                elif keys[pygame.K_RIGHT] or keys[pygame.K_d]:
+                    player.move(1, 0, maze)
+
             # let player quit the game
             if event.type == pygame.QUIT:
                 running = False
 
-        # update display
-        pygame.display.flip()
-
         # framerate to 60 FPS
         clock.tick(60)
+
+        # update display after events
+        pygame.display.update()
+        maze.draw(display_surface)
+        exit.draw(display_surface)
+        player.draw(display_surface)
 
 
 if __name__ == "__main__":
